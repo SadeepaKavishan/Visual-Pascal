@@ -1,0 +1,1002 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#2f5fd0">
+<title>Code Step Viewer</title>
+<style>
+:root{--bg:#f4f6fb;--card:#fff;--ink:#1c2333;--mute:#5d6882;--line:#d9dfec;--brand:#2f5fd0;--brand-ink:#fff;--hl:#ffe18a;--hl-line:#e0a100;--ok:#16794a;--code-bg:#fbfcff;--kw:#1f4fbf;--str:#a1370f;--num:#7a3ea8;--out-bg:#0f1626;--out-ink:#d8f5d0;--in-ink:#ffd479;--flash:#c9f2d6;--shape:#fff;--shape-line:#3a4668}
+@media (prefers-color-scheme:dark){:root:not([data-theme=light]){--bg:#0d1220;--card:#161d30;--ink:#e6eaf5;--mute:#98a3c0;--line:#2a3452;--brand:#6c93ff;--brand-ink:#0d1220;--hl:#5a4710;--hl-line:#ffc83d;--code-bg:#111828;--kw:#8fb0ff;--str:#ffa27d;--num:#d0a2ff;--flash:#1d5a3a;--shape:#1b2440;--shape-line:#9db0e6}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.5 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+header{display:flex;align-items:center;gap:12px;padding:10px 16px;background:var(--card);border-bottom:1px solid var(--line);position:sticky;top:0;z-index:20}
+header h1{font-size:1.1rem;margin:0;flex:1}
+.brand{font-size:1.2rem;color:var(--brand);padding-right:12px;border-right:2px solid var(--line);white-space:nowrap}
+@media (max-width:600px){header{gap:8px;padding:10px 10px}.brand{font-size:.95rem;padding-right:8px}header h1{font-size:.95rem;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}header h1 span{display:none}#menu{padding:8px 10px}}
+button,select,input{font:inherit;color:inherit}
+button{cursor:pointer;border:1px solid var(--line);background:var(--card);border-radius:8px;padding:8px 14px;min-height:40px}
+button:hover:not(:disabled){border-color:var(--brand)}
+button:disabled{opacity:.45;cursor:not-allowed}
+button.primary{background:var(--brand);color:var(--brand-ink);border-color:var(--brand);font-weight:700;min-width:150px}
+:focus-visible{outline:3px solid var(--hl-line);outline-offset:2px}
+.layout{display:grid;grid-template-columns:270px 1fr;min-height:calc(100vh - 58px)}
+aside{background:var(--card);border-right:1px solid var(--line);padding:12px;overflow:auto;max-height:calc(100vh - 58px);position:sticky;top:58px}
+aside h3{font-size:.75rem;text-transform:uppercase;letter-spacing:.06em;color:var(--mute);margin:14px 6px 4px}
+aside button.q{display:flex;gap:8px;width:100%;text-align:left;border:0;background:none;padding:7px 8px;border-radius:8px;min-height:0}
+aside button.q .n{flex:0 0 1.6em;color:var(--mute);font-variant-numeric:tabular-nums}
+aside button.q[aria-current=true]{background:var(--brand);color:var(--brand-ink)}
+aside button.q[aria-current=true] .n{color:inherit}
+main{padding:16px;min-width:0}
+.card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px 16px}
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:6px}
+.chip{font-size:.75rem;padding:2px 10px;border-radius:99px;background:var(--bg);border:1px solid var(--line);color:var(--mute)}
+.chip.c{color:var(--ink);font-weight:600}
+#qtitle{margin:2px 0 4px;font-size:1.25rem}
+#qtext{margin:0;color:var(--ink)}
+.seg{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px;align-items:center}
+.seg button[aria-pressed=true]{background:var(--brand);color:var(--brand-ink);border-color:var(--brand)}
+.controls{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:12px 0}
+.controls label{display:flex;align-items:center;gap:6px;color:var(--mute);font-size:.9rem}
+#stepno{margin-left:auto;color:var(--mute);font-variant-numeric:tabular-nums}
+#caption{min-height:3.2em;border-left:5px solid var(--hl-line);background:var(--card);border-radius:8px;padding:10px 14px;margin-bottom:12px;border-top:1px solid var(--line);border-right:1px solid var(--line);border-bottom:1px solid var(--line)}
+#caption code,.expr{font-family:ui-monospace,Menlo,Consolas,monospace;background:var(--bg);padding:1px 6px;border-radius:5px}
+#caption mark{background:var(--hl);color:inherit;padding:0 3px;border-radius:4px}
+.expr{display:block;margin-top:6px;padding:6px 10px}
+.work{display:grid;grid-template-columns:minmax(0,1.5fr) minmax(300px,1fr);gap:12px;align-items:start}
+.tabs{display:flex;gap:6px;align-items:center;margin-bottom:8px;flex-wrap:wrap}
+.tabs .sp{flex:1}
+.tabs button[aria-selected=true]{background:var(--brand);color:var(--brand-ink);border-color:var(--brand)}
+.panes.all{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:12px}
+.pane{background:var(--code-bg);border:1px solid var(--line);border-radius:10px;overflow:auto;max-height:68vh;display:none}
+.panes.tabs-mode .pane.show,.panes.all .pane{display:block}
+.pane>h4{margin:0;padding:6px 12px;font-size:.8rem;color:var(--mute);border-bottom:1px solid var(--line);position:sticky;top:0;background:var(--card);z-index:1}
+.ln{display:flex;font:15px/1.65 ui-monospace,Menlo,Consolas,monospace;padding:0 10px 0 0;border-left:5px solid transparent;white-space:pre}
+.ln .g{flex:0 0 2.6em;text-align:right;padding-right:10px;color:var(--mute);user-select:none}
+.ln.active{background:var(--hl);border-left-color:var(--hl-line);font-weight:700}
+.kw{color:var(--kw);font-weight:700}.st{color:var(--str)}.nu{color:var(--num)}
+.fcbox{padding:6px 10px}.fcbox h5{margin:8px 0 0;font-size:.85rem;color:var(--mute)}
+svg.fc{display:block;margin:0 auto}
+.fc-shape rect,.fc-shape polygon{fill:var(--shape);stroke:var(--shape-line);stroke-width:1.6}
+.fc-shape line{stroke:var(--shape-line);stroke-width:1.6}
+.fc-shape text,.fc-label{fill:var(--ink);font:14px system-ui,sans-serif}
+.fc-label{font-weight:700}
+.fc-line{stroke:var(--shape-line);stroke-width:1.6}.fc-arrow{fill:var(--shape-line)}
+.fc-shape.active rect,.fc-shape.active polygon{fill:var(--hl);stroke:var(--hl-line);stroke-width:3}
+.fc-shape.active text{font-weight:700;fill:var(--ink)}
+.stack{display:grid;gap:12px}
+.stack h3{margin:0 0 8px;font-size:.95rem}
+#out{background:var(--out-bg);color:var(--out-ink);border-radius:8px;padding:10px 12px;margin:0;min-height:5.5em;max-height:26vh;overflow:auto;font:15px/1.5 ui-monospace,Menlo,Consolas,monospace;white-space:pre-wrap}
+#out .i{color:var(--in-ink)}
+#out .cur{display:inline-block;width:.6em;background:var(--out-ink);animation:bl 1s steps(1) infinite}
+@keyframes bl{50%{opacity:0}}
+#inbox{display:none;gap:8px;align-items:center;flex-wrap:wrap;margin-top:8px;padding:8px;border:2px solid var(--hl-line);border-radius:8px;background:var(--hl);color:var(--ink)}
+#inbox.on{display:flex}
+#inbox input{flex:1;min-width:90px;padding:7px 10px;border:1px solid var(--line);border-radius:6px;background:#fff;color:#111;font-size:1rem}
+#inerr{color:#b3261e;font-size:.85rem;flex-basis:100%}
+table{border-collapse:collapse;width:100%;font-size:.92rem}
+th,td{border-bottom:1px solid var(--line);padding:5px 8px;text-align:left;font-variant-numeric:tabular-nums}
+th{color:var(--mute);font-weight:600;font-size:.8rem}
+td.v{font-family:ui-monospace,Menlo,Consolas,monospace;font-weight:700}
+td.unset{color:var(--mute);font-style:italic;font-weight:400}
+tr.flash td,td.flash{animation:fl 1.4s ease-out}
+@keyframes fl{from{background:var(--flash)}to{background:transparent}}
+.cells{display:flex;gap:0;flex-wrap:wrap}
+.cell{border:1px solid var(--shape-line);text-align:center;min-width:46px}
+.cell i{display:block;font-style:normal;font-size:.72rem;color:var(--mute);border-bottom:1px solid var(--line);background:var(--bg)}
+.cell b{display:block;padding:2px 4px;font-family:ui-monospace,Menlo,Consolas,monospace}
+.cell.flash b{animation:fl 1.4s ease-out}
+.sub{font-size:.8rem;color:var(--mute);margin:8px 0 2px}
+details summary{cursor:pointer;font-weight:700;font-size:.95rem}
+.tw{overflow:auto;max-height:32vh;margin-top:8px}
+.tw tr:last-child td{background:var(--hl)}
+.hint{color:var(--mute);font-size:.85rem;margin-top:10px}
+#menu{display:none}
+@media (max-width:980px){.layout{grid-template-columns:1fr}.work{grid-template-columns:1fr}#menu{display:inline-block}
+aside{position:fixed;left:0;top:58px;bottom:0;width:290px;max-height:none;transform:translateX(-102%);transition:transform .2s;z-index:30}
+aside.open{transform:none;box-shadow:0 0 40px rgba(0,0,0,.35)}}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+
+button,.seg button,#side .q{touch-action:manipulation;-webkit-tap-highlight-color:transparent}
+#scrim{display:none}
+@media (max-width:980px){
+ #scrim.on{display:block;position:fixed;inset:58px 0 0 0;background:rgba(0,0,0,.45);z-index:25}
+ #caption{position:sticky;top:58px;z-index:10;box-shadow:0 4px 10px rgba(0,0,0,.08)}
+ .pane{max-height:46vh}
+ aside button.q{padding:12px 10px}
+}
+@media (max-width:700px){
+ main{padding:10px 10px 96px}
+ .card{padding:12px}
+ #qtitle{font-size:1.1rem}
+ #layoutBtn{display:none}
+ .tabs{gap:4px}.tabs button{flex:1;padding:8px 6px;font-size:.9rem}
+ .controls{position:fixed;left:0;right:0;bottom:0;z-index:22;margin:0;padding:8px 10px calc(8px + env(safe-area-inset-bottom));background:var(--card);border-top:1px solid var(--line);box-shadow:0 -6px 16px rgba(0,0,0,.12);flex-wrap:nowrap;gap:6px}
+ .controls button{min-height:48px;padding:6px 8px;font-size:.85rem;white-space:nowrap}
+ .controls .primary{flex:1;min-width:0;font-size:.98rem}
+ .controls label{display:none}
+ #stepno{position:absolute;top:-24px;right:10px;margin:0;background:var(--card);border:1px solid var(--line);border-radius:99px;padding:0 10px;font-size:.8rem}
+ svg.fc{max-width:none!important;height:auto}
+ .fcbox{overflow:auto}
+ .ln{font-size:14px}
+ #out{font-size:14px;max-height:30vh}
+ .work{gap:10px}
+ table{font-size:.88rem}
+ #caption{font-size:.95rem;min-height:0}
+}
+</style>
+</head>
+<body>
+<header><button id="menu" aria-label="Show the list of questions">☰ Questions</button><strong class="brand">Sadeepa Kavishan ICT</strong><h1>Code Step Viewer <span style="font-weight:400;color:var(--mute)">· O/L ICT · Algorithms and Pascal</span></h1></header>
+<div class="layout">
+<div id="scrim"></div>
+<aside id="side" aria-label="Questions"></aside>
+<main>
+  <section class="card">
+    <div class="chips" id="chips"></div>
+    <h2 id="qtitle"></h2>
+    <p id="qtext"></p>
+    <div class="seg" id="variants"></div>
+  </section>
+  <div class="controls">
+    <button id="reset" title="Start again">⟲ Reset</button>
+    <button id="back" title="Previous step (←)">◀ Back</button>
+    <button id="next" class="primary" title="Run the next line (→ or Space)">▶ Next step</button>
+    <button id="auto" aria-pressed="false">⏵ Auto-run</button>
+    <label>Slow <input type="range" id="speed" min="250" max="2200" step="50" value="1000" aria-label="Auto-run speed"> Fast</label>
+    <span id="stepno" aria-live="off"></span>
+  </div>
+  <div id="caption" aria-live="polite"></div>
+  <div class="work">
+    <section>
+      <div class="tabs" role="tablist">
+        <button role="tab" data-v="fc">Flowchart</button><button role="tab" data-v="ps">Pseudocode</button><button role="tab" data-v="pas">Pascal code</button>
+        <span class="sp"></span><button id="layoutBtn" aria-pressed="false">Show all three</button>
+      </div>
+      <div class="panes tabs-mode" id="panes">
+        <div class="pane" id="p-fc"><h4>FLOWCHART</h4><div class="fcbox" id="fcbox"></div></div>
+        <div class="pane" id="p-ps"><h4>PSEUDOCODE</h4><div id="psbox"></div></div>
+        <div class="pane" id="p-pas"><h4>PASCAL</h4><div id="pasbox"></div></div>
+      </div>
+      <p class="hint">The highlighted line (or box) is the statement that has just run. Keys: → or Space = next, ← = back.</p>
+    </section>
+    <div class="stack">
+      <section class="card"><h3>Output</h3><pre id="out" aria-live="off"></pre>
+        <div id="inbox"><label for="invalue" id="inlabel"></label><input id="invalue" autocomplete="off" inputmode="text"><button id="insub" class="primary" style="min-width:0">Enter ⏎</button><div id="inerr" role="alert"></div></div></section>
+      <section class="card"><h3>Current Variable State</h3><div id="vars"></div></section>
+      <section class="card"><details><summary>Trace table (one row each time a value changes)</summary><div class="tw" id="trace"></div></details></section>
+    </div>
+  </div>
+</main>
+</div>
+<script>
+/* ===================== Expressions: tokenizer, parser, renderer ===================== */
+const KW = new Set(['DIV', 'MOD', 'AND', 'OR', 'NOT', 'TRUE', 'FALSE']);
+
+function tokenize(src) {
+  const toks = []; let i = 0;
+  while (i < src.length) {
+    const c = src[i];
+    if (/\s/.test(c)) { i++; continue; }
+    if (/[0-9]/.test(c)) { let j = i; while (j < src.length && /[0-9.]/.test(src[j])) j++; toks.push({ k: 'num', v: parseFloat(src.slice(i, j)) }); i = j; continue; }
+    if (/[A-Za-z_]/.test(c)) { let j = i; while (j < src.length && /[A-Za-z0-9_]/.test(src[j])) j++; const w = src.slice(i, j), U = w.toUpperCase(); toks.push(KW.has(U) ? { k: 'kw', v: U } : { k: 'id', v: w }); i = j; continue; }
+    if (c === "'") { let j = i + 1, s = ''; while (j < src.length) { if (src[j] === "'") { if (src[j + 1] === "'") { s += "'"; j += 2; continue; } break; } s += src[j++]; } toks.push({ k: 'str', v: s }); i = j + 1; continue; }
+    const two = src.substr(i, 2);
+    if (two === '<>' || two === '<=' || two === '>=') { toks.push({ k: 'op', v: two }); i += 2; continue; }
+    toks.push({ k: 'op', v: c }); i++;
+  }
+  return toks;
+}
+
+// Lenient grammar: comparisons bind tighter than AND / OR, so "61>=50 OR NOT(True)" works without extra brackets.
+function parseExpr(src) {
+  const T = tokenize(src); let p = 0;
+  const peek = () => T[p], next = () => T[p++];
+  const isOp = v => peek() && peek().k === 'op' && peek().v === v;
+  const isKw = v => peek() && peek().k === 'kw' && peek().v === v;
+  const expect = v => { if (!isOp(v)) throw new Error('Expected ' + v + ' in: ' + src); next(); };
+  function or() { let l = and(); while (isKw('OR')) { next(); l = { t: 'bin', op: 'OR', l, r: and() }; } return l; }
+  function and() { let l = nt(); while (isKw('AND')) { next(); l = { t: 'bin', op: 'AND', l, r: nt() }; } return l; }
+  function nt() { if (isKw('NOT')) { next(); return { t: 'not', e: nt() }; } return cmp(); }
+  function cmp() {
+    const l = arith(); const t = peek();
+    if (t && t.k === 'op' && ['=', '<>', '<', '>', '<=', '>='].includes(t.v)) { next(); return { t: 'bin', op: t.v, l, r: arith() }; }
+    return l;
+  }
+  function arith() { let l = term(); while (peek() && peek().k === 'op' && (peek().v === '+' || peek().v === '-')) { const o = next().v; l = { t: 'bin', op: o, l, r: term() }; } return l; }
+  function term() {
+    let l = fac();
+    for (;;) {
+      const t = peek();
+      if (t && ((t.k === 'op' && (t.v === '*' || t.v === '/')) || (t.k === 'kw' && (t.v === 'DIV' || t.v === 'MOD')))) { next(); l = { t: 'bin', op: t.v, l, r: fac() }; } else break;
+    }
+    return l;
+  }
+  function fac() {
+    const t = next();
+    if (!t) throw new Error('Unexpected end of: ' + src);
+    if (t.k === 'num') return { t: 'num', v: t.v };
+    if (t.k === 'str') return { t: 'str', v: t.v };
+    if (t.k === 'kw' && (t.v === 'TRUE' || t.v === 'FALSE')) return { t: 'bool', v: t.v === 'TRUE' };
+    if (t.k === 'op' && t.v === '(') { const e = or(); expect(')'); return { t: 'paren', e }; }
+    if (t.k === 'op' && t.v === '-') return { t: 'neg', e: fac() };
+    if (t.k === 'id') {
+      if (isOp('(')) { next(); const args = []; if (!isOp(')')) { do { args.push(or()); } while (isOp(',') && next()); } expect(')'); return { t: 'call', name: t.v, args }; }
+      if (isOp('[')) { next(); const idx = or(); expect(']'); return { t: 'var', name: t.v, idx }; }
+      return { t: 'var', name: t.v };
+    }
+    throw new Error('Unexpected token ' + JSON.stringify(t) + ' in: ' + src);
+  }
+  const e = or();
+  if (p < T.length) throw new Error('Trailing tokens in: ' + src);
+  return e;
+}
+
+/* ---------- formatting of values ---------- */
+function fmtNumber(v) {
+  if (Number.isInteger(v)) return String(v);
+  return String(parseFloat(v.toFixed(4)));
+}
+function fmtVal(v, quote) {
+  if (typeof v === 'number') return fmtNumber(v);
+  if (typeof v === 'boolean') return v ? 'True' : 'False';
+  if (typeof v === 'string') return quote ? "'" + v + "'" : v;
+  return String(v);
+}
+function esc(s) { return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); }
+
+/* ---------- expression -> text. o.env substitutes variable values, o.mark wraps one node in marker chars ---------- */
+const M1 = '\u0001', M2 = '\u0002';
+function exprRaw(e, o) {
+  o = o || {};
+  const R = n => exprRaw(n, o);
+  let s;
+  switch (e.t) {
+    case 'num': s = fmtNumber(e.v); break;
+    case 'str': s = "'" + e.v + "'"; break;
+    case 'bool': s = e.v ? 'True' : 'False'; break;
+    case 'val': s = fmtVal(e.v, true); break;
+    case 'var': {
+      if (o.env) { const r = peekVar(o.env, e); if (r !== undefined) { s = fmtVal(r, true); break; } }
+      s = e.name + (e.idx ? '[' + R(e.idx) + ']' : ''); break;
+    }
+    case 'call': s = e.name + '(' + e.args.map(R).join(', ') + ')'; break;
+    case 'bin': s = R(e.l) + ' ' + e.op + ' ' + R(e.r); break;
+    case 'not': s = 'NOT' + (e.e.t === 'paren' ? '' : ' ') + R(e.e); break;
+    case 'neg': s = '-' + R(e.e); break;
+    case 'paren': s = '(' + R(e.e) + ')'; break;
+    default: s = '?';
+  }
+  if (o.mark === e) s = M1 + s + M2;
+  return s;
+}
+function exprText(e, o) { return exprRaw(e, o).split(M1).join('').split(M2).join(''); }
+function exprHTML(e, o) { return esc(exprRaw(e, o)).split(M1).join('<mark>').split(M2).join('</mark>'); }
+
+/* ---------- operator application ---------- */
+function applyOp(op, a, b) {
+  switch (op) {
+    case '+': return (typeof a === 'string' || typeof b === 'string') ? String(a) + String(b) : a + b;
+    case '-': return a - b;
+    case '*': return a * b;
+    case '/': return a / b;
+    case 'DIV': return Math.trunc(a / b);
+    case 'MOD': return a % b;
+    case 'AND': return a && b;
+    case 'OR': return a || b;
+    case '=': return a === b;
+    case '<>': return a !== b;
+    case '<': return a < b;
+    case '>': return a > b;
+    case '<=': return a <= b;
+    case '>=': return a >= b;
+  }
+  throw new Error('Unknown operator ' + op);
+}
+
+/* ---------- step-by-step reduction plan for "operator priority" questions ---------- */
+const OP_LEVEL = { NOT: 2, '*': 3, '/': 3, DIV: 3, MOD: 3, AND: 3, '+': 4, '-': 4, OR: 4, '=': 5, '<>': 5, '<': 5, '>': 5, '<=': 5, '>=': 5 };
+const isLeaf = n => n.t === 'num' || n.t === 'str' || n.t === 'bool' || n.t === 'val';
+function cloneTree(n) { return JSON.parse(JSON.stringify(n)); }
+
+function planReductions(src) {
+  let root = cloneTree(parseExpr(src));
+  const unwrap = n => { // silently drop brackets that only wrap a single value
+    if (!n || typeof n !== 'object') return n;
+    for (const k of ['l', 'r', 'e', 'idx']) if (n[k]) n[k] = unwrap(n[k]);
+    if (n.t === 'paren' && isLeaf(n.e)) return n.e;
+    return n;
+  };
+  root = unwrap(root);
+  const steps = [];
+  for (let guard = 0; guard < 50 && !isLeaf(root); guard++) {
+    const ready = [];
+    (function walk(n, depth, parent, key, pos) {
+      if (n.t === 'paren') { walk(n.e, depth + 1, n, 'e', pos); return; }
+      if (n.t === 'bin') { walk(n.l, depth, n, 'l'); const readyHere = isLeaf(n.l) && isLeaf(n.r); walk(n.r, depth, n, 'r'); if (readyHere) ready.push({ n, depth, parent, key, level: OP_LEVEL[n.op] }); return; }
+      if (n.t === 'not' || n.t === 'neg') { walk(n.e, depth, n, 'e'); if (isLeaf(n.e)) ready.push({ n, depth, parent, key, level: 2 }); }
+    })(root, 0, null, null);
+    ready.forEach((r, i) => r.pos = i);
+    ready.sort((a, b) => (b.depth - a.depth) || (a.level - b.level) || (a.pos - b.pos));
+    const pick = ready[0];
+    const n = pick.n;
+    let value;
+    if (n.t === 'bin') value = applyOp(n.op, n.l.v, n.r.v);
+    else if (n.t === 'not') value = !n.e.v; else value = -n.e.v;
+    const before = exprHTML(root, { mark: n });
+    const piece = exprText(n);
+    const opName = n.t === 'bin' ? n.op : (n.t === 'not' ? 'NOT' : '-');
+    const leaf = { t: 'val', v: value };
+    if (pick.parent) pick.parent[pick.key] = leaf; else root = leaf;
+    // a bracket that now holds a single value disappears
+    root = unwrap(root);
+    steps.push({ before, piece: esc(piece), op: opName, level: pick.level, depth: pick.depth, value, after: exprHTML(root) });
+  }
+  return { src, steps, result: root.v };
+}
+
+/* ===================== Environment, interpreter (generator based) ===================== */
+function runGen(g) { let r = g.next(); while (!r.done) r = g.next(); return r.value; }
+const b = x => '<b>' + esc(x) + '</b>', code = h => '<code>' + h + '</code>';
+const ev = (id, cap, x) => Object.assign({ id, cap }, x || {});
+
+function mkVar(d) {
+  if (d.t === 'array') return { name: d.n, type: 'array', of: d.of || 'integer', lo: d.lo, hi: d.hi, cells: Array.from({ length: d.hi - d.lo + 1 }, () => ({ def: false })) };
+  return { name: d.n, type: d.t, def: false };
+}
+function newEnv(prog) {
+  const g = {};
+  prog.consts.forEach(c => g[c.n.toLowerCase()] = { name: c.n, type: 'constant', def: true, v: c.value });
+  prog.vars.forEach(d => g[d.n.toLowerCase()] = mkVar(d));
+  return { g, frames: [] };
+}
+function findVar(env, name) {
+  const k = name.toLowerCase(), f = env.frames[env.frames.length - 1];
+  return (f && f.vars[k]) || env.g[k];
+}
+function peekVar(env, e) {
+  const v = findVar(env, e.name); if (!v) return;
+  if (v.type === 'array') { if (!e.idx) return; let i; try { i = runGen(evalG(e.idx, env, {})); } catch (x) { return; } const c = v.cells[i - v.lo]; return c && c.def ? c.v : undefined; }
+  return v.def ? v.v : undefined;
+}
+function setVar(env, name, idx, val) {
+  const v = findVar(env, name); if (!v) throw new Error('Unknown variable ' + name);
+  if (v.type === 'array') { const c = v.cells[idx - v.lo]; if (!c) throw new Error('Index ' + idx + ' is outside the array'); c.def = true; c.v = val; }
+  else { v.def = true; v.v = val; }
+}
+function snapVar(v) {
+  return v.type === 'array' ? { name: v.name, type: 'array', of: v.of, lo: v.lo, cells: v.cells.map(c => c.def ? c.v : undefined) } : { name: v.name, type: v.type, v: v.def ? v.v : undefined };
+}
+function snapshot(env, ctx) {
+  const f = env.frames[env.frames.length - 1];
+  return { g: Object.values(env.g).map(snapVar), loc: f ? { name: f.name, vars: Object.values(f.vars).map(snapVar) } : null, out: ctx.out.slice() };
+}
+
+function* evalG(e, env, ctx) {
+  switch (e.t) {
+    case 'num': case 'str': case 'bool': case 'val': return e.v;
+    case 'paren': return yield* evalG(e.e, env, ctx);
+    case 'neg': return -(yield* evalG(e.e, env, ctx));
+    case 'not': return !(yield* evalG(e.e, env, ctx));
+    case 'var': {
+      const v = findVar(env, e.name); if (!v) throw new Error('Unknown variable ' + e.name);
+      if (v.type === 'array') { const i = yield* evalG(e.idx, env, ctx); const c = v.cells[i - v.lo]; if (!c || !c.def) throw new Error(e.name + '[' + i + '] has no value'); return c.v; }
+      if (!v.def) throw new Error(v.name + ' has no value yet'); return v.v;
+    }
+    case 'call': {
+      const p = ctx.prog.subs.find(x => x.name.toLowerCase() === e.name.toLowerCase());
+      const args = []; for (const a of e.args) args.push(yield* evalG(a, env, ctx));
+      const caller = ctx.cur;
+      const r = yield* enter(p, args, env, ctx, caller, 'Call function ' + b(e.name + '(' + args.map(x => fmtVal(x, true)).join(', ') + ')'));
+      ctx.cur = caller; ctx.ret = { text: e.name + '(' + args.join(', ') + ')', v: r }; return r;
+    }
+    case 'bin': { const a = yield* evalG(e.l, env, ctx); const c = yield* evalG(e.r, env, ctx); return applyOp(e.op, a, c); }
+  }
+  throw new Error('Cannot evaluate ' + e.t);
+}
+
+function* enter(p, args, env, ctx, callerId, head) {
+  const vars = {};
+  p.params.forEach((pm, i) => vars[pm.n.toLowerCase()] = { name: pm.n, type: pm.t, def: true, v: args[i] });
+  if (p.ret) vars[p.name.toLowerCase()] = { name: p.name, type: p.ret, def: false };
+  env.frames.push({ name: p.name, vars });
+  yield ev(callerId, head + '. The parameters receive the values: ' + p.params.map((pm, i) => b(pm.n) + ' = ' + b(fmtVal(args[i], true))).join(', ') + '.');
+  yield* execBlock(p.body, env, ctx);
+  const fr = env.frames.pop();
+  return p.ret ? fr.vars[p.name.toLowerCase()].v : undefined;
+}
+
+function* execBlock(list, env, ctx) { for (const s of list) yield* execStmt(s, env, ctx); }
+
+function* condG(s, env, ctx) {
+  const raw = exprText(s.c), sub = exprText(s.c, { env }), c = yield* evalG(s.c, env, ctx);
+  return { c, txt: code(esc(raw)) + (sub !== raw ? ' → ' + code(esc(sub)) : '') + ' is ' + b(c ? 'TRUE' : 'FALSE') };
+}
+
+function* execStmt(s, env, ctx) {
+  if (++ctx.steps > 3000) throw new Error('Stopped after too many steps (an endless loop?).');
+  ctx.cur = s.id;
+  switch (s.t) {
+    case 'assign': {
+      const sub = exprText(s.e, { env }); const val = yield* evalG(s.e, env, ctx);
+      let i; if (s.idx) i = yield* evalG(s.idx, env, ctx);
+      setVar(env, s.v, i, val);
+      const nm = s.v + (s.idx ? '[' + i + ']' : '');
+      const lit = s.e.t === 'num' || s.e.t === 'str' || s.e.t === 'bool';
+      let cap = ctx.ret ? b(ctx.ret.text) + ' returned ' + b(fmtVal(ctx.ret.v)) + '. ' : ''; ctx.ret = null;
+      cap += lit ? 'Store ' + b(fmtVal(val, true)) + ' in ' + b(nm) + '.'
+        : 'Work out ' + code(esc(sub)) + (sub === fmtVal(val, true) ? '' : ' = ' + b(fmtVal(val, true))) + ' and store it in ' + b(nm) + '.';
+      yield ev(s.id, cap); return;
+    }
+    case 'input': {
+      const v = findVar(env, s.v);
+      const raw = yield ev(s.id, null, { input: { name: v.name, type: v.type, def: ctx.prog.inputs[ctx.inCount] } });
+      ctx.inCount++;
+      setVar(env, s.v, undefined, raw);
+      ctx.out.push({ k: 'i', s: fmtVal(raw) + (s.ln === false ? ' ' : '\n') });
+      yield ev(s.id, 'The value typed on the keyboard, ' + b(fmtVal(raw, true)) + ', is stored in ' + b(s.v) + '.'); return;
+    }
+    case 'output': {
+      const vals = []; for (const a of s.args) vals.push(yield* evalG(a, env, ctx));
+      const text = vals.map(v => fmtVal(v)).join('');
+      ctx.out.push({ k: 'o', s: text + (s.ln ? '\n' : '') });
+      yield ev(s.id, 'Display ' + code(esc(text) || '(empty line)') + (s.ln ? ' and move to a new line.' : ' and stay on the same line.')); return;
+    }
+    case 'step': ctx.out.push({ k: 'o', s: s.text + '\n' }); yield ev(s.id, 'Do this step: ' + b(s.text) + '.'); return;
+    case 'call': {
+      const p = ctx.prog.subs.find(x => x.name.toLowerCase() === s.name.toLowerCase());
+      const args = []; for (const a of s.args) args.push(yield* evalG(a, env, ctx));
+      yield* enter(p, args, env, ctx, s.id, 'Call procedure ' + b(s.name + '(' + args.map(x => fmtVal(x, true)).join(', ') + ')'));
+      yield ev(s.id, 'The procedure has finished, so the main program carries on.'); return;
+    }
+    case 'if': {
+      const r = yield* condG(s, env, ctx);
+      yield ev(s.id, 'Check ' + r.txt + '. ' + (r.c ? 'Run the THEN part.' : (s.else && s.else.length ? 'Skip to the ELSE part.' : 'Skip it and carry on.')));
+      if (r.c) yield* execBlock(s.then, env, ctx); else if (s.else) yield* execBlock(s.else, env, ctx);
+      return;
+    }
+    case 'while':
+      for (;;) {
+        const r = yield* condG(s, env, ctx);
+        yield ev(s.id, 'Check ' + r.txt + '. ' + (r.c ? 'Run the loop body again.' : 'The condition is false, so leave the loop.'));
+        if (!r.c) return; yield* execBlock(s.body, env, ctx);
+      }
+    case 'repeat':
+      for (;;) {
+        yield* execBlock(s.body, env, ctx);
+        const r = yield* condG(s, env, ctx);
+        yield ev(s.id + ':until', 'UNTIL check: ' + r.txt + '. ' + (r.c ? 'The condition is true, so the loop ends.' : 'Still false, so repeat the loop body.'));
+        if (r.c) return;
+      }
+    case 'for': {
+      const from = yield* evalG(s.from, env, ctx), to = yield* evalG(s.to, env, ctx), d = s.down ? -1 : 1;
+      setVar(env, s.v, undefined, from);
+      yield ev(s.id + ':init', 'Start the FOR loop: set ' + b(s.v) + ' to ' + b(from) + '. It will run ' + (s.down ? 'down to ' : 'up to ') + b(to) + '.');
+      for (;;) {
+        const cur = findVar(env, s.v).v, ok = s.down ? cur >= to : cur <= to;
+        yield ev(s.id + ':cond', 'Check ' + code(esc(cur + (s.down ? ' >= ' : ' <= ') + to)) + ' is ' + b(ok ? 'TRUE' : 'FALSE') + '. ' + (ok ? 'Run the loop body.' : 'Leave the loop.'));
+        if (!ok) return;
+        yield* execBlock(s.body, env, ctx);
+        setVar(env, s.v, undefined, cur + d);
+        yield ev(s.id + ':inc', (s.down ? 'Subtract 1 from ' : 'Add 1 to ') + b(s.v) + ' → ' + b(cur + d) + '.');
+      }
+    }
+    case 'evalout': {
+      const pl = s.plan;
+      yield ev(s.id, 'Work out ' + code(esc(pl.src)) + '. Order of priority: brackets, NOT, then * / DIV MOD AND, then + - OR, then comparisons.');
+      for (const st of pl.steps) yield ev(s.id, 'Priority ' + st.level + (st.depth ? ' (inside brackets)' : '') + ': do <b>' + st.piece + '</b> → ' + b(fmtVal(st.value)) + '<div class="expr">' + st.before + ' &nbsp;⇒&nbsp; ' + st.after + '</div>');
+      ctx.out.push({ k: 'o', s: fmtVal(pl.result) + '\n' });
+      yield ev(s.id, 'Display the final answer: ' + b(fmtVal(pl.result))); return;
+    }
+  }
+  throw new Error('Unknown statement ' + s.t);
+}
+
+function* runProg(prog, env, ctx) {
+  yield ev('start', 'The program starts.');
+  yield* execBlock(prog.body, env, ctx);
+  yield ev('end', 'The program has finished.');
+}
+
+let _id = 0;
+function compile(prog) {
+  const P = x => typeof x === 'string' ? parseExpr(x) : x;
+  const walk = list => list.forEach(s => {
+    s.id = 's' + (++_id);
+    if (s.t === 'assign') { const m = /^(\w+)\[(.+)\]$/.exec(s.v); if (m) { s.v = m[1]; s.idx = m[2]; } }
+    ['e', 'idx', 'c', 'from', 'to'].forEach(k => { if (s[k] !== undefined) s[k] = P(s[k]); });
+    if (s.args) s.args = s.args.map(P);
+    if (s.t === 'evalout') s.plan = planReductions(s.expr);
+    ['body', 'then', 'else'].forEach(k => s[k] && walk(s[k]));
+  });
+  prog.subs = prog.subs || []; prog.consts = prog.consts || []; prog.inputs = prog.inputs || []; prog.vars = prog.vars || [];
+  walk(prog.body); prog.subs.forEach(p => walk(p.body));
+  prog.consts.forEach(c => c.value = runGen(evalG(parseExpr(c.src), { g: {}, frames: [] }, {})));
+  return prog;
+}
+function startRun(prog) {
+  const env = newEnv(prog), ctx = { out: [], inCount: 0, steps: 0, prog, cur: null, ret: null };
+  return { env, ctx, gen: runProg(prog, env, ctx) };
+}
+
+/* ===================== Pascal and pseudocode text generators ===================== */
+const X = e => exprText(e);
+const argList = a => a.map(X).join(', ');
+const typeStr = v => v.t === 'array' ? 'array[' + v.lo + '..' + v.hi + '] of ' + (v.of || 'integer') : v.t;
+
+function pasList(list, d, o) { list.forEach(s => pasStmt(s, d, o)); }
+function pasBranch(list, d, o, strip) {
+  const wrap = list.length > 1 || list[0].t === 'if';
+  if (wrap) o.push({ d, t: 'begin', ids: [] });
+  pasList(list, d + 1, o);
+  if (wrap) o.push({ d, t: 'end;', ids: [] });
+  if (strip) { const l = o[o.length - 1]; l.t = l.t.replace(/;$/, ''); }
+}
+function pasIf(s, d, o, isElse) {
+  const hasE = s.else && s.else.length;
+  o.push({ d, t: (isElse ? 'else ' : '') + 'if ' + X(s.c) + ' then', ids: [s.id] });
+  pasBranch(s.then, d, o, hasE);
+  if (hasE) { if (s.else.length === 1 && s.else[0].t === 'if') pasIf(s.else[0], d, o, true); else { o.push({ d, t: 'else', ids: [] }); pasBranch(s.else, d, o, false); } }
+}
+function pasStmt(s, d, o) {
+  const L = (t, ids) => o.push({ d, t, ids: ids || [s.id] });
+  switch (s.t) {
+    case 'assign': L(s.v + (s.idx ? '[' + X(s.idx) + ']' : '') + ' := ' + X(s.e) + ';'); break;
+    case 'input': L((s.ln === false ? 'read' : 'readln') + '(' + s.v + ');'); break;
+    case 'output': L((s.ln ? 'writeln' : 'write') + (s.args.length ? '(' + argList(s.args) + ')' : '') + ';'); break;
+    case 'step': L("writeln('" + s.text + "');"); break;
+    case 'call': L(s.name + '(' + argList(s.args) + ');'); break;
+    case 'evalout': L('writeln(' + s.expr + ');'); break;
+    case 'if': pasIf(s, d, o, false); break;
+    case 'while': L('while ' + X(s.c) + ' do'); pasBranch(s.body, d, o, false); break;
+    case 'for': L('for ' + s.v + ' := ' + X(s.from) + (s.down ? ' downto ' : ' to ') + X(s.to) + ' do', [s.id, s.id + ':init', s.id + ':cond', s.id + ':inc']); pasBranch(s.body, d, o, false); break;
+    case 'repeat': L('repeat', []); pasList(s.body, d + 1, o); L('until ' + X(s.c) + ';', [s.id + ':until']); break;
+  }
+}
+function genPascal(p) {
+  const o = [];
+  o.push({ d: 0, t: 'Program ' + p.pname + (p.inputs.length ? '(input,output)' : '') + ';', ids: [] });
+  p.consts.forEach((c, i) => o.push({ d: 0, t: (i ? '      ' : 'Const ') + c.n + ' = ' + c.src + ';', ids: [] }));
+  if (p.vars.length) {
+    o.push({ d: 0, t: 'Var', ids: [] });
+    const groups = []; p.vars.forEach(v => { const t = typeStr(v), g = groups.find(x => x.t === t && v.t !== 'array'); if (g) g.n.push(v.n); else groups.push({ t, n: [v.n] }); });
+    groups.forEach(g => o.push({ d: 1, t: g.n.join(', ') + ' : ' + g.t + ';', ids: [] }));
+  }
+  p.subs.forEach(sb => {
+    o.push({ d: 0, t: (sb.ret ? 'Function ' : 'Procedure ') + sb.name + '(' + sb.params.map(x => x.n + ' : ' + x.t).join('; ') + ')' + (sb.ret ? ' : ' + sb.ret : '') + ';', ids: [] });
+    o.push({ d: 0, t: 'begin', ids: [] }); pasList(sb.body, 1, o); o.push({ d: 0, t: 'end;', ids: [] });
+  });
+  o.push({ d: 0, t: 'begin', ids: ['start'] }); pasList(p.body, 1, o); o.push({ d: 0, t: 'end.', ids: ['end'] });
+  return o;
+}
+
+function psList(list, d, o, fn) { list.forEach(s => psStmt(s, d, o, fn)); }
+function psIf(s, d, o, isElse, fn) {
+  o.push({ d, t: (isElse ? 'ELSE IF ' : 'IF ') + X(s.c) + ' THEN', ids: [s.id] });
+  psList(s.then, d + 1, o, fn);
+  if (s.else && s.else.length) {
+    if (s.else.length === 1 && s.else[0].t === 'if') { psIf(s.else[0], d, o, true, fn); return; }
+    o.push({ d, t: 'ELSE', ids: [] }); psList(s.else, d + 1, o, fn);
+  }
+  if (!isElse) o.push({ d, t: 'ENDIF', ids: [] });
+}
+function psStmt(s, d, o, fn) {
+  const L = (t, ids) => o.push({ d, t, ids: ids || [s.id] });
+  switch (s.t) {
+    case 'assign': {
+      const lhs = s.v + (s.idx ? '[' + X(s.idx) + ']' : '');
+      if (fn && s.v.toLowerCase() === fn.toLowerCase()) L('RETURN ' + X(s.e));
+      else L((s.e.t === 'num' || s.e.t === 'str' || s.e.t === 'bool' ? '' : 'PROCESS ') + lhs + ' = ' + X(s.e));
+      break;
+    }
+    case 'input': L('INPUT ' + s.v); break;
+    case 'output': L('OUTPUT ' + (s.args.length ? argList(s.args) : '(blank line)')); break;
+    case 'step': L(s.text); break;
+    case 'call': L('CALL ' + s.name + '(' + argList(s.args) + ')'); break;
+    case 'evalout': L('OUTPUT ' + s.expr); break;
+    case 'if': psIf(s, d, o, false, fn); break;
+    case 'while': L('WHILE ' + X(s.c)); psList(s.body, d + 1, o, fn); L('ENDWHILE', []); break;
+    case 'for': L('FOR ' + s.v + ' = ' + X(s.from) + (s.down ? ' DOWNTO ' : ' TO ') + X(s.to) + ' DO', [s.id, s.id + ':init', s.id + ':cond', s.id + ':inc']); psList(s.body, d + 1, o, fn); L('ENDFOR', []); break;
+    case 'repeat': L('REPEAT', []); psList(s.body, d + 1, o, fn); L('UNTIL ' + X(s.c), [s.id + ':until']); break;
+  }
+}
+function genPseudo(p) {
+  const o = [];
+  p.consts.forEach(c => o.push({ d: 0, t: 'CONSTANT ' + c.n + ' = ' + c.src, ids: [] }));
+  p.subs.forEach(sb => {
+    o.push({ d: 0, t: (sb.ret ? 'FUNCTION ' : 'PROCEDURE ') + sb.name + '(' + sb.params.map(x => x.n).join(', ') + ')', ids: [] });
+    psList(sb.body, 1, o, sb.ret ? sb.name : null); o.push({ d: 0, t: sb.ret ? 'ENDFUNCTION' : 'ENDPROCEDURE', ids: [] });
+  });
+  o.push({ d: 0, t: 'BEGIN', ids: ['start'] }); psList(p.body, 1, o, null); o.push({ d: 0, t: 'END', ids: ['end'] });
+  return o;
+}
+
+/* ===================== Flowchart layout + SVG ===================== */
+const G = 26, CW = 7.8;
+function wrapTxt(s, max) {
+  const words = s.split(' '), lines = []; let cur = '';
+  words.forEach(w => { if (cur && (cur + ' ' + w).length > max) { lines.push(cur); cur = w; } else cur = cur ? cur + ' ' + w : w; });
+  if (cur) lines.push(cur); return lines;
+}
+function sizeOf(kind, text) {
+  const lines = wrapTxt(text, kind === 'dec' ? 20 : 26), len = Math.max(...lines.map(l => l.length));
+  if (kind === 'dec') return { lines, w: Math.max(140, len * CW * 1.45 + 40), h: Math.max(66, lines.length * 18 + 44) };
+  if (kind === 'term') return { lines, w: Math.max(110, len * CW + 40), h: 40 };
+  return { lines, w: Math.max(130, len * CW + 44), h: Math.max(44, lines.length * 18 + 20) };
+}
+const blk = () => ({ l: 0, r: 0, h: 0, shapes: [], lines: [], labels: [] });
+function put(into, c, dx, dy) {
+  c.shapes.forEach(s => into.shapes.push({ ...s, x: s.x + dx, y: s.y + dy }));
+  c.lines.forEach(l => into.lines.push({ ...l, pts: l.pts.map(p => [p[0] + dx, p[1] + dy]) }));
+  c.labels.forEach(l => into.labels.push({ ...l, x: l.x + dx, y: l.y + dy }));
+}
+function leaf(kind, text, id) {
+  const z = sizeOf(kind, text), b0 = blk();
+  b0.shapes.push({ kind, id, x: 0, y: 0, w: z.w, h: z.h, text: z.lines }); b0.l = b0.r = z.w / 2; b0.h = z.h; return b0;
+}
+function seq(items) {
+  const b0 = blk(); let y = 0;
+  items.forEach((it, i) => {
+    if (i) { b0.lines.push({ pts: [[0, y], [0, y + G]], arrow: true }); y += G; }
+    put(b0, it, 0, y); b0.l = Math.max(b0.l, it.l); b0.r = Math.max(b0.r, it.r); y += it.h;
+  });
+  b0.h = y; return b0;
+}
+function fcList(list) { return seq(list.map(fcStmt)); }
+function decShape(b0, text, id) { const z = sizeOf('dec', text); b0.shapes.push({ kind: 'dec', id, x: 0, y: 0, w: z.w, h: z.h, text: z.lines }); return z; }
+
+function fcIf(s) {
+  const b0 = blk(), z = decShape(b0, X(s.c) + ' ?', s.id), dw = z.w / 2, dh = z.h;
+  const Lb = fcList(s.then), hasE = s.else && s.else.length, Rb = hasE ? fcList(s.else) : null;
+  const cxL = -Math.max(dw, Lb.r + 22), cxR = Math.max(dw, (Rb ? Rb.l : 0) + 22);
+  const yB = dh + G, yM = yB + Math.max(Lb.h, Rb ? Rb.h : 0) + G;
+  b0.lines.push({ pts: [[-dw, dh / 2], [cxL, dh / 2], [cxL, yB]], arrow: true });
+  b0.labels.push({ x: -dw - 4, y: dh / 2 - 6, t: 'Yes', a: 'end' });
+  put(b0, Lb, cxL, yB); b0.lines.push({ pts: [[cxL, yB + Lb.h], [cxL, yM], [0, yM]] });
+  b0.lines.push({ pts: [[dw, dh / 2], [cxR, dh / 2], [cxR, Rb ? yB : yM]], arrow: !!Rb });
+  b0.labels.push({ x: dw + 4, y: dh / 2 - 6, t: 'No', a: 'start' });
+  if (Rb) { put(b0, Rb, cxR, yB); b0.lines.push({ pts: [[cxR, yB + Rb.h], [cxR, yM], [0, yM]] }); }
+  b0.h = yM; b0.l = -cxL + Lb.l; b0.r = cxR + (Rb ? Rb.r : 0); return b0;
+}
+function fcWhile(condText, id, bodyBlk) {
+  const b0 = blk(), z = decShape(b0, condText + ' ?', id), dw = z.w / 2, dh = z.h;
+  const yB = dh + G, yLoop = yB + bodyBlk.h + 18, yExit = yLoop + 24;
+  const xL = -(Math.max(dw, bodyBlk.l) + 28), xR = Math.max(dw, bodyBlk.r) + 28;
+  b0.lines.push({ pts: [[0, dh], [0, yB]], arrow: true }); b0.labels.push({ x: 6, y: dh + 16, t: 'Yes', a: 'start' });
+  put(b0, bodyBlk, 0, yB);
+  b0.lines.push({ pts: [[0, yB + bodyBlk.h], [0, yLoop], [xL, yLoop], [xL, dh / 2], [-dw, dh / 2]], arrow: true });
+  b0.lines.push({ pts: [[dw, dh / 2], [xR, dh / 2], [xR, yExit], [0, yExit]] });
+  b0.labels.push({ x: dw + 4, y: dh / 2 - 6, t: 'No', a: 'start' });
+  b0.h = yExit; b0.l = -xL; b0.r = xR; return b0;
+}
+function fcRepeat(s) {
+  const body = fcList(s.body), b0 = blk(), top = 28;
+  put(b0, body, 0, top);
+  const yD = top + body.h + G, z = sizeOf('dec', X(s.c) + ' ?'), dw = z.w / 2, dh = z.h;
+  b0.shapes.push({ kind: 'dec', id: s.id + ':until', x: 0, y: yD, w: z.w, h: dh, text: z.lines });
+  const xL = -(Math.max(dw, body.l) + 28);
+  b0.lines.push({ pts: [[0, 0], [0, top]], arrow: true });
+  b0.lines.push({ pts: [[0, top + body.h], [0, yD]], arrow: true });
+  b0.lines.push({ pts: [[-dw, yD + dh / 2], [xL, yD + dh / 2], [xL, 14], [0, 14]], arrow: true });
+  b0.labels.push({ x: -dw - 4, y: yD + dh / 2 - 6, t: 'No', a: 'end' }); b0.labels.push({ x: 6, y: yD + dh + 16, t: 'Yes', a: 'start' });
+  b0.h = yD + dh; b0.l = -xL; b0.r = Math.max(body.r, dw); return b0;
+}
+function fcStmt(s) {
+  switch (s.t) {
+    case 'assign': return leaf('proc', s.v + (s.idx ? '[' + X(s.idx) + ']' : '') + ' = ' + X(s.e), s.id);
+    case 'input': return leaf('io', 'Input ' + s.v, s.id);
+    case 'output': return leaf('io', 'Output ' + (s.args.length ? argList(s.args) : '(blank line)'), s.id);
+    case 'evalout': return leaf('io', 'Output ' + s.expr, s.id);
+    case 'step': return leaf('proc', s.text, s.id);
+    case 'call': return leaf('call', 'Call ' + s.name + '(' + argList(s.args) + ')', s.id);
+    case 'if': return fcIf(s);
+    case 'while': return fcWhile(X(s.c), s.id, fcList(s.body));
+    case 'repeat': return fcRepeat(s);
+    case 'for': {
+      const inc = leaf('proc', s.v + ' = ' + s.v + (s.down ? ' - 1' : ' + 1'), s.id + ':inc');
+      const body = seq([fcList(s.body), inc]);
+      const cond = s.v + (s.down ? ' >= ' : ' <= ') + X(s.to);
+      return seq([leaf('proc', s.v + ' = ' + X(s.from), s.id + ':init'), fcWhile(cond, s.id + ':cond', body)]);
+    }
+  }
+}
+function fcSVG(items) {
+  const b0 = seq(items), pad = 24, W = b0.l + b0.r + pad * 2, H = b0.h + pad * 2, ox = b0.l + pad, oy = pad;
+  let s = `<svg class="fc" viewBox="0 0 ${W} ${H}" width="${W}" style="max-width:100%;height:auto" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Flowchart"><defs><marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" class="fc-arrow"/></marker></defs>`;
+  b0.lines.forEach(l => s += `<polyline class="fc-line" fill="none" points="${l.pts.map(p => (p[0] + ox) + ',' + (p[1] + oy)).join(' ')}"${l.arrow ? ' marker-end="url(#ah)"' : ''}/>`);
+  b0.shapes.forEach(h => {
+    const x = h.x + ox, y = h.y + oy, w = h.w, ht = h.h; let sh;
+    if (h.kind === 'dec') sh = `<polygon points="${x},${y} ${x + w / 2},${y + ht / 2} ${x},${y + ht} ${x - w / 2},${y + ht / 2}"/>`;
+    else if (h.kind === 'io') sh = `<polygon points="${x - w / 2 + 14},${y} ${x + w / 2},${y} ${x + w / 2 - 14},${y + ht} ${x - w / 2},${y + ht}"/>`;
+    else if (h.kind === 'term') sh = `<rect x="${x - w / 2}" y="${y}" width="${w}" height="${ht}" rx="${ht / 2}"/>`;
+    else if (h.kind === 'call') sh = `<rect x="${x - w / 2}" y="${y}" width="${w}" height="${ht}"/><line x1="${x - w / 2 + 9}" y1="${y}" x2="${x - w / 2 + 9}" y2="${y + ht}"/><line x1="${x + w / 2 - 9}" y1="${y}" x2="${x + w / 2 - 9}" y2="${y + ht}"/>`;
+    else sh = `<rect x="${x - w / 2}" y="${y}" width="${w}" height="${ht}"/>`;
+    const ty = y + ht / 2 - (h.text.length - 1) * 9 + 5;
+    s += `<g class="fc-shape" data-ids="${h.id || ''}">${sh}<text text-anchor="middle">${h.text.map((t, i) => `<tspan x="${x}" y="${ty + i * 18}">${esc(t)}</tspan>`).join('')}</text></g>`;
+  });
+  b0.labels.forEach(l => s += `<text class="fc-label" x="${l.x + ox}" y="${l.y + oy}" text-anchor="${l.a}">${l.t}</text>`);
+  return s + '</svg>';
+}
+function genFlowcharts(p) {
+  const out = [{ title: 'Main program', svg: fcSVG([leaf('term', 'Start', 'start'), fcList(p.body), leaf('term', 'End', 'end')]) }];
+  p.subs.forEach(sb => out.push({ title: (sb.ret ? 'Function ' : 'Procedure ') + sb.name, svg: fcSVG([leaf('term', sb.name, ''), fcList(sb.body), leaf('term', 'Return', '')]) }));
+  return out;
+}
+
+/* ===================== The 20 questions (all content comes from the two PDFs) ===================== */
+const A = (v, e, idx) => ({ t: 'assign', v, e, idx });
+const IN = (v, ln) => ({ t: 'input', v, ln });
+const OUT = (args, ln) => ({ t: 'output', args, ln: ln !== false });
+const WR = args => OUT(args, false);
+const IF = (c, then, els) => ({ t: 'if', c, then, else: els });
+const FOR = (v, from, to, body, down) => ({ t: 'for', v, from, to, body, down });
+const WH = (c, body) => ({ t: 'while', c, body });
+const RP = (body, c) => ({ t: 'repeat', body, c });
+const CALL = (name, args) => ({ t: 'call', name, args });
+const STEP = text => ({ t: 'step', text });
+const V = (names, t) => names.split(',').map(n => ({ n: n.trim(), t }));
+const ARR = (n, lo, hi) => ({ n, t: 'array', lo, hi, of: 'integer' });
+const ask = (txt, v) => [WR(["'" + txt + "'"]), IN(v)];
+const P = o => () => compile(o());
+
+function loopVariants(make) { // make(style) -> program
+  return [{ label: 'FOR loop', build: P(() => make('for')) }, { label: 'WHILE loop', build: P(() => make('while')) }, { label: 'REPEAT-UNTIL loop', build: P(() => make('repeat')) }];
+}
+const X8 = [80, 75, 60, 91, 85, 25, 31, 45];
+
+const QUESTIONS = [
+  { cat: 'Algorithms and sequence', title: 'Making a cup of tea', text: 'Making a cup of tea is an algorithm. Show the five steps as a flowchart and as pseudocode, in order, from top to bottom.',
+    variants: [{ build: P(() => ({ pname: 'MakeTea', body: [STEP('Boiling water'), STEP('Putting tea powder into the strainer'), STEP('Mix sugar and milk powder in a cup'), STEP('Pouring the hot water through the strainer into the cup'), STEP('Mix well with a spoon')] })) }] },
+  { cat: 'Algorithms and sequence', title: 'write and writeln', text: 'Display "Welcome to Pascal Programming" using write and writeln. See how writeln moves the next output to a new line, while write does not.',
+    variants: [{ build: P(() => ({ pname: 'WelcomeText', body: [WR(["'Welcome'"]), OUT(["'to'"]), OUT(["'Pascal'"]), WR(["'Programming'"])] })) }] },
+  { cat: 'Algorithms and sequence', title: 'Assigning values to variables', text: 'Store the name Kasun, the age 25 and the salary 225000 in variables, then display them. (String and integer data types.)',
+    variants: [{ build: P(() => ({ pname: 'Assign_values', vars: [{ n: 'name', t: 'string' }, ...V('age,salary', 'integer')], body: [A('name', "'Kasun'"), A('age', '25'), A('salary', '225000'), OUT(['name']), OUT(['age']), OUT(['salary'])] })) }] },
+  { cat: 'Algorithms and sequence', title: 'Sum of two numbers (input)', text: 'Write a program to read two numbers from the user and display their sum. (Input with readln, process, output.)',
+    variants: [{ build: P(() => ({ pname: 'user_inputs', inputs: [5, 10], vars: V('num1,num2,Total', 'integer'), body: [...ask('Enter first number: ', 'num1'), ...ask('Enter second number: ', 'num2'), A('Total', 'num1 + num2'), OUT(['Total'])] })) }] },
+  { cat: 'Algorithms and sequence', title: 'Area of a circle (constant)', text: 'Find the area of a circle when the radius is input. Use the constant Pi = 22/7. (Constants and the real data type.)',
+    variants: [{ build: P(() => ({ pname: 'CircleArea', inputs: [7], consts: [{ n: 'Pi', src: '22/7' }], vars: [{ n: 'radius', t: 'integer' }, { n: 'Area', t: 'real' }], body: [...ask('Enter the radius: ', 'radius'), A('Area', 'Pi * radius * radius'), OUT(["'Area = '", 'Area'])] })) }] },
+
+  { cat: 'Operators', title: 'Operator priority 1', text: 'Evaluate 8-12 DIV 6* 15+12 using the operator priority order: brackets, NOT, then * / DIV MOD AND, then + - OR, then comparisons.',
+    variants: [{ build: P(() => ({ pname: 'Priority1', body: [{ t: 'evalout', expr: '8-12 DIV 6* 15+12' }] })) }] },
+  { cat: 'Operators', title: 'Operator priority 2 (Boolean)', text: 'Evaluate (8<=5) AND (25>=10) OR True. Work out the brackets first, then AND, then OR.',
+    variants: [{ build: P(() => ({ pname: 'Priority2', body: [{ t: 'evalout', expr: '(8<=5) AND (25>=10) OR True' }] })) }] },
+
+  { cat: 'Selection (IF)', title: 'IF: display Adult', text: 'Read a user’s age. Display "Adult" if the age is greater than 18. (A single IF with no ELSE.)',
+    variants: [{ build: P(() => ({ pname: 'AdultCheck', inputs: [25], vars: V('age', 'integer'), body: [...ask('Enter your age: ', 'age'), IF('age > 18', [OUT(["'Adult'"])])] })) }] },
+  { cat: 'Selection (IF)', title: 'IF-ELSE: odd or even', text: 'Show whether a number entered by a user is odd or even. (Uses MOD and IF ... ELSE.) Try an odd and an even number.',
+    variants: [{ build: P(() => ({ pname: 'OddEven', inputs: [7], vars: V('num', 'integer'), body: [...ask('Enter a number: ', 'num'), IF('num MOD 2 = 0', [OUT(["'Even'"])], [OUT(["'Odd'"])])] })) }] },
+  { cat: 'Selection (IF)', title: 'Discount on a bill', text: 'If the bill is Rs. 5000 or more a 10% discount is given, otherwise a 5% discount. Calculate and display the discount when the bill is entered.',
+    variants: [{ build: P(() => ({ pname: 'Discount', inputs: [6500], vars: [{ n: 'bill', t: 'real' }, { n: 'discount', t: 'real' }], body: [...ask('Enter the bill: ', 'bill'), IF('bill >= 5000', [A('discount', 'bill * 10 / 100')], [A('discount', 'bill * 5 / 100')]), OUT(["'Discount = '", 'discount'])] })) }] },
+  { cat: 'Selection (IF)', title: 'ELSE IF: ICT grade', text: 'Read the ICT marks. 75 or above = A, 65 or above = B, 55 or above = C, 35 or above = S, below 35 = F. Try marks such as 80, 68, 40 and 20.',
+    variants: [{ build: P(() => ({ pname: 'ICTGrade', inputs: [68], vars: V('marks', 'integer'), body: [...ask('Enter the marks: ', 'marks'),
+      IF('marks >= 75', [OUT(["'A'"])], [IF('marks >= 65', [OUT(["'B'"])], [IF('marks >= 55', [OUT(["'C'"])], [IF('marks >= 35', [OUT(["'S'"])], [OUT(["'F'"])])])])])] })) }] },
+
+  { cat: 'Iteration (loops)', title: 'Display the numbers 1 to 10', text: 'Display the numbers from 1 to 10. Switch between the three loop types and compare how each one works.',
+    variants: loopVariants(st => ({ pname: 'Numbers', vars: V('i', 'integer'), body: st === 'for' ? [FOR('i', '1', '10', [OUT(['i'])])] : st === 'while' ? [A('i', '1'), WH('i <= 10', [OUT(['i']), A('i', 'i + 1')])] : [A('i', '1'), RP([OUT(['i']), A('i', 'i + 1')], 'i > 10')] })) },
+  { cat: 'Iteration (loops)', title: 'Sum of the numbers 1 to 10', text: 'Calculate the sum of the numbers from 1 to 10. Watch the variable Sum grow each time round the loop.',
+    variants: loopVariants(st => ({ pname: 'SumLoop', vars: V('i,Sum', 'integer'), body: st === 'for' ? [A('Sum', '0'), FOR('i', '1', '10', [A('Sum', 'Sum + i')]), OUT(["'Sum = '", 'Sum'])] : st === 'while' ? [A('i', '1'), A('Sum', '0'), WH('i <= 10', [A('Sum', 'Sum + i'), A('i', 'i + 1')]), OUT(["'Sum = '", 'Sum'])] : [A('Sum', '0'), A('i', '1'), RP([A('Sum', 'Sum + i'), A('i', 'i + 1')], 'i > 10'), OUT(["'Sum = '", 'Sum'])] })) },
+  { cat: 'Iteration (loops)', title: 'Sum of five numbers entered', text: 'Read five numbers from the user and display their sum. (Input inside a loop.)',
+    variants: [{ build: P(() => ({ pname: 'SumFive', inputs: [10, 20, 30, 40, 50], vars: V('i,num,Sum', 'integer'), body: [A('Sum', '0'), FOR('i', '1', '5', [WR(["'Enter number '", 'i', "': '"]), IN('num'), A('Sum', 'Sum + num')]), OUT(["'Sum = '", 'Sum'])] })) }] },
+  { cat: 'Iteration (loops)', title: 'Sum of even numbers 1 to 10', text: 'Calculate the sum of the even numbers from 1 to 10. (A loop with a condition inside it.)',
+    variants: [{ build: P(() => ({ pname: 'SumEven', vars: V('i,Sum', 'integer'), body: [A('Sum', '0'), FOR('i', '1', '10', [IF('i MOD 2 = 0', [A('Sum', 'Sum + i')])]), OUT(["'Sum of even numbers = '", 'Sum'])] })) }] },
+  { cat: 'Iteration (loops)', title: 'Countdown from a number to 0', text: 'Display every value in descending order from a positive integer entered by the user down to zero.',
+    variants: [{ label: 'WHILE loop', build: P(() => ({ pname: 'Countdown', inputs: [5], vars: V('n', 'integer'), body: [...ask('Enter a positive number: ', 'n'), WH('n >= 0', [OUT(['n']), A('n', 'n - 1')])] })) },
+      { label: 'REPEAT-UNTIL loop', build: P(() => ({ pname: 'Countdown', inputs: [5], vars: V('n', 'integer'), body: [...ask('Enter a positive number: ', 'n'), RP([OUT(['n']), A('n', 'n - 1')], 'n < 0')] })) },
+      { label: 'FOR loop (downto)', build: P(() => ({ pname: 'Countdown', inputs: [5], vars: V('n,i', 'integer'), body: [...ask('Enter a positive number: ', 'n'), FOR('i', 'n', '0', [OUT(['i'])], true)] })) }] },
+
+  { cat: 'Arrays', title: 'Array Q: store and display', text: 'Store the marks 80, 85, 75, 70 and 90 in the array Q, then display them one by one. Compare writing each element with using a loop.',
+    variants: [{ label: 'One by one', build: P(() => ({ pname: 'Assing_Values', vars: [ARR('Q', 1, 5)], body: [A('Q[1]', '80'), A('Q[2]', '85'), A('Q[3]', '75'), A('Q[4]', '70'), A('Q[5]', '90'), ...[1, 2, 3, 4, 5].map(i => OUT(['Q[' + i + ']']))] })) },
+      { label: 'Using a loop', build: P(() => ({ pname: 'Assing_Values', vars: [ARR('Q', 1, 5), { n: 'a', t: 'integer' }], body: [A('Q[1]', '80'), A('Q[2]', '85'), A('Q[3]', '75'), A('Q[4]', '70'), A('Q[5]', '90'), FOR('a', '1', '5', [OUT(['Q[a]'])])] })) }] },
+  { cat: 'Arrays', title: 'Even numbers in an array', text: 'The array X holds 80, 75, 60, 91, 85, 25, 31, 45. Display the even numbers in X and the sum of those even numbers.',
+    variants: [{ build: P(() => ({ pname: 'ArrayEven', vars: [ARR('X', 1, 8), ...V('i,Sum', 'integer')], body: [...X8.map((v, k) => A('X[' + (k + 1) + ']', String(v))), A('Sum', '0'), FOR('i', '1', '8', [IF('X[i] MOD 2 = 0', [OUT(['X[i]']), A('Sum', 'Sum + X[i]')])]), OUT(["'Sum of even numbers = '", 'Sum'])] })) }] },
+
+  { cat: 'Subprograms', title: 'Procedure: addNumbers', text: 'A procedure performs a task (here it calculates and displays a total) but cannot return a value to the main program. Call addNumbers(5, 6).',
+    variants: [{ build: P(() => ({ pname: 'add_num', vars: V('num1,num2,Total', 'integer'), subs: [{ name: 'addNumbers', params: V('num1,num2', 'integer'), body: [A('Total', 'num1 + num2'), OUT(['Total'])] }], body: [CALL('addNumbers', ['5', '6'])] })) }] },
+  { cat: 'Subprograms', title: 'Function: addNumbers', text: 'A function returns a value to the main program by assigning it to the function’s own name. Find addNumbers(5, 6) + 1.',
+    variants: [{ build: P(() => ({ pname: 'add_num', vars: V('addition', 'integer'), subs: [{ name: 'addNumbers', ret: 'integer', params: V('num1,num2', 'integer'), body: [A('addNumbers', 'num1 + num2')] }], body: [A('addition', 'addNumbers(5, 6) + 1'), OUT(['addition'])] })) }] },
+];
+QUESTIONS.forEach((q, i) => { q.n = i + 1; });
+
+function conceptsOf(p) {
+  const c = new Set(['Sequence']);
+  (function w(l) { l.forEach(s => { if (s.t === 'if') c.add('Selection'); if (['while', 'for', 'repeat'].includes(s.t)) c.add('Iteration'); ['body', 'then', 'else'].forEach(k => s[k] && w(s[k])); }); })(p.body);
+  p.subs.forEach(s => c.add(s.ret ? 'Function' : 'Procedure'));
+  if (p.vars.some(v => v.t === 'array')) c.add('Array');
+  return [...c];
+}
+
+
+(function () {
+  const $ = id => document.getElementById(id);
+  const PAS_KW = new Set('program const var begin end if then else for to downto do while repeat until procedure function array of integer real string boolean char readln read write writeln'.split(' '));
+  const PS_KW = new Set('BEGIN END INPUT OUTPUT PROCESS IF THEN ELSE ENDIF FOR TO DOWNTO DO ENDFOR WHILE ENDWHILE REPEAT UNTIL CALL PROCEDURE FUNCTION RETURN ENDPROCEDURE ENDFUNCTION CONSTANT'.split(' '));
+  let Q, variant = 0, prog, run, hist = [], pos = -1, pending = null, finished = false, errMsg = '', timer = null, viewMode = 'tabs', view = 'fc', init0;
+
+  function hl(text, kws, ci) {
+    return text.replace(/('[^']*')|([A-Za-z_]\w*)|(\d+(?:\.\d+)?)|([\s\S])/g, (m, s, w, n, o) => {
+      if (s) return '<span class="st">' + esc(s) + '</span>';
+      if (w) return (ci ? kws.has(w.toLowerCase()) : kws.has(w)) ? '<span class="kw">' + w + '</span>' : esc(w);
+      if (n) return '<span class="nu">' + n + '</span>';
+      return esc(o);
+    });
+  }
+  function codeHTML(lines, kws, ci) {
+    return lines.map((l, i) => '<div class="ln" data-ids="' + l.ids.join(',') + '"><span class="g">' + (i + 1) + '</span><span>' + '  '.repeat(l.d) + hl(l.t, kws, ci) + '</span></div>').join('');
+  }
+
+  /* ---------- sidebar ---------- */
+  function buildSide() {
+    let h = '', cat = '';
+    QUESTIONS.forEach(q => {
+      if (q.cat !== cat) { cat = q.cat; h += '<h3>' + esc(cat) + '</h3>'; }
+      h += '<button class="q" data-n="' + q.n + '"><span class="n">' + q.n + '</span><span>' + esc(q.title) + '</span></button>';
+    });
+    $('side').innerHTML = h;
+    $('side').onclick = e => { const b = e.target.closest('button.q'); if (b) { load(+b.dataset.n - 1, 0); toggleSide(false); window.scrollTo({ top: 0 }); } };
+  }
+
+  /* ---------- load a question ---------- */
+  function load(qi, vi) {
+    stopAuto(); Q = QUESTIONS[qi]; variant = vi;
+    prog = Q.variants[vi].build();
+    document.querySelectorAll('aside .q').forEach(b => b.setAttribute('aria-current', +b.dataset.n === Q.n));
+    $('chips').innerHTML = '<span class="chip">Question ' + Q.n + ' of ' + QUESTIONS.length + '</span><span class="chip">' + esc(Q.cat) + '</span>' + conceptsOf(prog).map(c => '<span class="chip c">' + c + '</span>').join('');
+    $('qtitle').textContent = Q.title; $('qtext').textContent = Q.text;
+    $('variants').innerHTML = Q.variants.length > 1 ? '<span style="color:var(--mute)">Version:</span>' + Q.variants.map((v, i) => '<button data-i="' + i + '" aria-pressed="' + (i === vi) + '">' + esc(v.label) + '</button>').join('') : '';
+    $('pasbox').innerHTML = codeHTML(genPascal(prog), PAS_KW, true);
+    $('psbox').innerHTML = codeHTML(genPseudo(prog), PS_KW, false);
+    $('fcbox').innerHTML = genFlowcharts(prog).map((f, i, a) => (a.length > 1 ? '<h5>' + esc(f.title) + '</h5>' : '') + f.svg).join('');
+    resetRun();
+  }
+  $('variants').onclick = e => { const b = e.target.closest('button[data-i]'); if (b) load(Q.n - 1, +b.dataset.i); };
+
+  function resetRun() {
+    stopAuto();
+    run = startRun(prog); hist = []; pos = -1; pending = null; finished = false; errMsg = '';
+    init0 = flat(snapshot(run.env, run.ctx));
+    render();
+  }
+
+  /* ---------- stepping ---------- */
+  function flat(s) {
+    const m = {};
+    const add = (v, p) => { if (v.type === 'array') v.cells.forEach((c, i) => m[p + v.name + '[' + (v.lo + i) + ']'] = c === undefined ? '' : fmtVal(c)); else m[p + v.name] = v.v === undefined ? '' : fmtVal(v.v); };
+    s.g.forEach(v => add(v, '')); if (s.loc) s.loc.vars.forEach(v => add(v, s.loc.name + '.'));
+    return m;
+  }
+  function pushEntry(e) {
+    const snap = snapshot(run.env, run.ctx), f = flat(snap), prev = hist.length ? hist[hist.length - 1].f : init0, ch = new Set();
+    Object.keys(f).forEach(k => { if (f[k] !== prev[k]) ch.add(k); });
+    const prevOut = hist.length ? hist[hist.length - 1].snap.out.length : 0;
+    hist.push({ id: e.id, cap: e.cap, snap, f, ch, newOut: snap.out.length > prevOut });
+    pos = hist.length - 1;
+  }
+  function handle(r) {
+    if (r.done) { finished = true; return; }
+    const e = r.value;
+    if (e.input) { pending = e; return; }
+    pushEntry(e);
+    if (e.id === 'end') finished = true;
+  }
+  function advance() {
+    if (errMsg) return;
+    if (pos < hist.length - 1) { pos++; render(); return; }
+    if (pending) { commitInput(); return; }
+    if (finished) return;
+    try { handle(run.gen.next()); } catch (ex) { errMsg = ex.message; stopAuto(); }
+    render();
+  }
+  function commitInput() {
+    const d = pending.input, raw = $('invalue').value.trim(); let val;
+    if (d.type === 'integer') { if (!/^-?\d+$/.test(raw)) return inErr('Please type a whole number, for example 12.'); val = parseInt(raw, 10); }
+    else if (d.type === 'real') { if (raw === '' || isNaN(Number(raw))) return inErr('Please type a number, for example 12.5.'); val = Number(raw); }
+    else { if (raw === '') return inErr('Please type something.'); val = raw; }
+    pending = null; $('inerr').textContent = '';
+    try { handle(run.gen.next(val)); } catch (ex) { errMsg = ex.message; stopAuto(); }
+    render();
+  }
+  function inErr(m) { $('inerr').textContent = m; $('invalue').focus(); }
+  function back() { if (pos >= 0) { pos--; render(); } }
+
+  function startAuto() { if (timer) return; $('auto').setAttribute('aria-pressed', 'true'); $('auto').textContent = '⏸ Pause'; loop(); }
+  function loop() {
+    timer = setTimeout(() => {
+      timer = null; if ($('auto').getAttribute('aria-pressed') !== 'true') return;
+      if (!pending) advance();
+      if (errMsg || (finished && pos === hist.length - 1 && !pending)) return stopAuto();
+      loop();
+    }, +$('speed').value);
+  }
+  function stopAuto() { if (timer) clearTimeout(timer); timer = null; $('auto').setAttribute('aria-pressed', 'false'); $('auto').textContent = '⏵ Auto-run'; }
+
+  /* ---------- rendering ---------- */
+  function valCell(v) { return v === undefined ? '<td class="unset">not set yet</td>' : '<td class="v">' + esc(fmtVal(v, true)) + '</td>'; }
+  function varsHTML(s, ch, locPrefix) {
+    const rows = (list, pre) => {
+      const sc = list.filter(v => v.type !== 'array'), ar = list.filter(v => v.type === 'array');
+      let h = '';
+      if (sc.length) h += '<table><tr><th>Name</th><th>Type</th><th>Value</th></tr>' + sc.map(v => '<tr' + (ch.has(pre + v.name) ? ' class="flash"' : '') + '><td>' + esc(v.name) + '</td><td>' + esc(v.type) + '</td>' + valCell(v.v) + '</tr>').join('') + '</table>';
+      ar.forEach(v => { h += '<div class="sub">' + esc(v.name) + ' : array of ' + esc(v.of) + '</div><div class="cells">' + v.cells.map((c, i) => '<div class="cell' + (ch.has(pre + v.name + '[' + (v.lo + i) + ']') ? ' flash' : '') + '"><i>' + esc(v.name) + '[' + (v.lo + i) + ']</i><b>' + (c === undefined ? '&nbsp;' : esc(fmtVal(c, true))) + '</b></div>').join('') + '</div>'; });
+      return h;
+    };
+    let h = '';
+    if (!s.g.length && !s.loc) return '<span style="color:var(--mute)">This program has no variables.</span>';
+    if (s.loc) h += '<div class="sub">Inside <b>' + esc(s.loc.name) + '</b> (local variables)</div>' + rows(s.loc.vars, s.loc.name + '.') + '<div class="sub">Main program (global variables)</div>';
+    return h + rows(s.g, '');
+  }
+  function outHTML(segs, cursor) {
+    return segs.map(g => g.k === 'i' ? '<span class="i">' + esc(g.s) + '</span>' : esc(g.s)).join('') + (cursor ? '<span class="cur">&nbsp;</span>' : '');
+  }
+  function traceHTML() {
+    const cols = []; (hist.length ? hist[0].snap : snapshot(run.env, run.ctx)).g.forEach(v => { if (v.type === 'variable' || (v.type !== 'array' && v.type !== 'constant')) cols.push(v.name); });
+    hist.forEach(h => h.snap.loc && h.snap.loc.vars.forEach(v => { if (!cols.includes(h.snap.loc.name + '.' + v.name)) cols.push(h.snap.loc.name + '.' + v.name); }));
+    const rows = []; hist.slice(0, pos + 1).forEach((h, i) => { if (h.ch.size || h.newOut) rows.push([i + 1, h]); });
+    if (!rows.length) return '<span style="color:var(--mute)">No values have changed yet.</span>';
+    return '<table><tr><th>Step</th>' + cols.map(c => '<th>' + esc(c) + '</th>').join('') + '<th>Output so far</th></tr>' + rows.slice(-80).map(([n, h]) => {
+      const lastOut = h.snap.out.filter(g => g.k === 'o').slice(-1)[0];
+      return '<tr><td>' + n + '</td>' + cols.map(c => { const v = h.f[c]; return '<td>' + (v === undefined || v === '' ? '' : esc(v)) + '</td>'; }).join('') + '<td>' + (h.newOut && lastOut ? esc(lastOut.s.trim()) : '') + '</td></tr>';
+    }).join('') + '</table>';
+  }
+  function highlight(id) {
+    document.querySelectorAll('#panes .ln, #panes .fc-shape').forEach(el => {
+      const ids = (el.dataset.ids || '').split(',');
+      el.classList.toggle('active', !!id && ids.includes(id));
+    });
+    const act = document.querySelectorAll('#panes .active');
+    act.forEach(el => { const box = el.closest('.pane'); if (!box || box.offsetParent === null) return; const r = el.getBoundingClientRect(), b = box.getBoundingClientRect(); if (r.top < b.top + 30 || r.bottom > b.bottom) box.scrollTop += r.top - b.top - b.height / 2; });
+  }
+  function render() {
+    const cur = pos >= 0 ? hist[pos] : null, atEnd = pos === hist.length - 1, isPending = !!pending && atEnd;
+    const snap = cur ? cur.snap : { g: snapshot(run.env, run.ctx).g, loc: null, out: [] };
+    const base = pos < 0 ? snapshot(newEnvOnly(), { out: [] }) : snap;
+    $('vars').innerHTML = varsHTML(base, cur ? cur.ch : new Set());
+    $('out').innerHTML = outHTML(snap.out, true);
+    $('out').scrollTop = 1e9;
+    highlight(isPending ? pending.id : (cur ? cur.id : null));
+    let cap;
+    if (errMsg) cap = '<b style="color:#b3261e">Problem:</b> ' + esc(errMsg);
+    else if (isPending) cap = 'The program is waiting for the keyboard: type a value for ' + b(pending.input.name) + ' in the yellow box, then press <b>Enter</b>.';
+    else if (cur) cap = cur.cap;
+    else cap = 'Press <b>▶ Next step</b> to run the program one line at a time. The line that runs is highlighted, and the output and variables update on the right.';
+    $('caption').innerHTML = cap;
+    $('inbox').classList.toggle('on', isPending);
+    if (isPending) { const d = pending.input; $('inlabel').innerHTML = 'Enter a value for <b>' + esc(d.name) + '</b> (' + esc(d.type) + '):'; if (document.activeElement !== $('invalue')) { $('invalue').value = d.def === undefined ? '' : String(d.def); } if (matchMedia('(max-width:700px)').matches) $('inbox').scrollIntoView({ block: 'center' }); else { $('invalue').focus(); $('invalue').select(); } }
+    const done = finished && atEnd && !pending;
+    $('next').textContent = isPending ? '▶ Enter value' : done ? '✔ Finished' : '▶ Next step';
+    $('next').disabled = done || !!errMsg;
+    $('back').disabled = pos < 0;
+    $('stepno').textContent = pos < 0 ? 'Ready' : 'Step ' + (pos + 1) + (done ? ' (end)' : '');
+    $('trace').innerHTML = traceHTML();
+  }
+  function newEnvOnly() { return newEnv(prog); }
+
+  /* ---------- view tabs and layout ---------- */
+  function setView() {
+    if (matchMedia('(max-width:700px)').matches) viewMode = 'tabs';
+    const P = $('panes'); P.className = 'panes ' + (viewMode === 'all' ? 'all' : 'tabs-mode');
+    ['fc', 'ps', 'pas'].forEach(v => $('p-' + v).classList.toggle('show', v === view));
+    document.querySelectorAll('.tabs [data-v]').forEach(b => b.setAttribute('aria-selected', b.dataset.v === view && viewMode === 'tabs'));
+    $('layoutBtn').setAttribute('aria-pressed', viewMode === 'all'); $('layoutBtn').textContent = viewMode === 'all' ? 'Show one at a time' : 'Show all three';
+    highlight(pos >= 0 ? hist[pos].id : null);
+  }
+  document.querySelector('.tabs').onclick = e => { const b = e.target.closest('[data-v]'); if (b) { view = b.dataset.v; viewMode = 'tabs'; setView(); } };
+  $('layoutBtn').onclick = () => { viewMode = viewMode === 'all' ? 'tabs' : 'all'; setView(); };
+
+  $('next').onclick = advance; $('back').onclick = back; $('reset').onclick = resetRun;
+  $('auto').onclick = () => $('auto').getAttribute('aria-pressed') === 'true' ? stopAuto() : startAuto();
+  $('insub').onclick = commitInput;
+  $('invalue').onkeydown = e => { if (e.key === 'Enter') { e.preventDefault(); advance(); } e.stopPropagation(); };
+  const toggleSide = on => { $('side').classList.toggle('open', on); $('scrim').classList.toggle('on', $('side').classList.contains('open')); };
+  $('menu').onclick = () => toggleSide();
+  $('scrim').onclick = () => toggleSide(false);
+  document.addEventListener('keydown', e => {
+    if (/INPUT|SELECT|TEXTAREA/.test(e.target.tagName) || e.target.tagName === 'BUTTON' && e.key === ' ') return;
+    if (e.key === 'ArrowRight' || e.key === ' ') { e.preventDefault(); if (!$('next').disabled) advance(); }
+    else if (e.key === 'ArrowLeft') { e.preventDefault(); back(); }
+  });
+
+  buildSide(); load(0, 0); setView();
+})();
+</script>
+</body>
+</html>
